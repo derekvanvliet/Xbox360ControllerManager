@@ -137,14 +137,12 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
 		Xbox360Controller *controller = [self controllerWithHid:hidDevice];
 		if (controller) {
 			if (controller.deviceIsAccessible) {
-				NSLog(@"Controller: %i",hidDevice);
 				[newControllers addObject:controller];
 			}
 		}
 		else {
 			controller = [[Xbox360Controller alloc] initWithHidDevice:hidDevice];
 			if (controller.deviceItem) {
-				NSLog(@"Controller: %i",hidDevice);
 				[newControllers addObject:controller];
 				[controller release];
 			}
@@ -162,8 +160,6 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
 	controllers = newControllers;
 	
 	[[NSNotificationCenter defaultCenter] postNotificationName:XBOX360CONTROLLERS_UPDATED object:nil];
-	NSLog(@"====");
-
 }
 
 -(void)setAllDelegates:(id<Xbox360ControllerDelegate>)d {
