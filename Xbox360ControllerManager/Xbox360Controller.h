@@ -34,7 +34,7 @@
     
     io_object_t myHid;
     int controllerIndex;
-
+	
     int leftStickX;
     int leftStickY;
     int rightStickX;
@@ -49,6 +49,9 @@
     BOOL up,down,left,right;
     
     id<Xbox360ControllerDelegate> delegate;
+    
+    BOOL invertY;
+    BOOL invertX;
 }
 
 @property (readonly) io_object_t myHid;
@@ -64,6 +67,7 @@
 @property (readonly) BOOL start,back,home;
 @property (readonly) BOOL up,down,left,right;
 @property (readwrite,retain) id<Xbox360ControllerDelegate> delegate;
+@property (readwrite,assign) BOOL invertX,invertY;
 
 -(id)initWithHidDevice:(io_object_t)hid Index:(int)index;
 -(void)eventQueueFired:(void*)sender withResult:(IOReturn)result;

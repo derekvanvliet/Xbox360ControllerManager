@@ -35,6 +35,7 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 @synthesize start,back,home;
 @synthesize up,down,left,right;
 @synthesize delegate;
+@synthesize invertX,invertY;
 
 // Start up
 -(id)initWithHidDevice:(io_object_t)hid Index:(int)index
@@ -55,7 +56,7 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 		deviceArray=[[NSMutableArray arrayWithCapacity:1] retain];
 		device=NULL;
 		hidQueue=NULL;
-
+		
         DeviceItem *item=[DeviceItem allocateDeviceItemForDevice:myHid];
         [deviceArray addObject:item];
         [self startDevice];
@@ -111,13 +112,13 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
             leftStickX = value;
             break;
         case 1:
-            leftStickY = -value;
+            leftStickY = value;
             break;
         case 2:
             rightStickX = value;
             break;
         case 3:
-            rightStickY = -value;
+            rightStickY = value;
             break;
         case 4:
             leftTrigger = value;
@@ -375,53 +376,6 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
         // Error?
         return;
     }
-    // Read existing properties
-    {
-		//        CFDictionaryRef dict=(CFDictionaryRef)IORegistryEntryCreateCFProperty(registryEntry,CFSTR("DeviceData"),NULL,0);
-        CFDictionaryRef dict = (CFDictionaryRef)[GetController(GetSerialNumber(registryEntry)) retain];
-        if(dict!=0) {
-            CFBooleanRef boolValue;
-            CFNumberRef intValue;
-            
-            if(CFDictionaryGetValueIfPresent(dict,CFSTR("InvertLeftX"),(void*)&boolValue)) {
-                //                [leftStickInvertX setState:CFBooleanGetValue(boolValue)?NSOnState:NSOffState];
-            } else NSLog(@"No value for InvertLeftX");
-            if(CFDictionaryGetValueIfPresent(dict,CFSTR("InvertLeftY"),(void*)&boolValue)) {
-                //                [leftStickInvertY setState:CFBooleanGetValue(boolValue)?NSOnState:NSOffState];
-            } else NSLog(@"No value for InvertLeftY");
-            if(CFDictionaryGetValueIfPresent(dict,CFSTR("RelativeLeft"),(void*)&boolValue)) {
-                //                BOOL enable=CFBooleanGetValue(boolValue);
-                //                [leftLinked setState:enable?NSOnState:NSOffState];
-                //                [leftStick setLinked:enable];
-            } else NSLog(@"No value for RelativeLeft");
-            if(CFDictionaryGetValueIfPresent(dict,CFSTR("DeadzoneLeft"),(void*)&intValue)) {
-                UInt16 i;
-                
-                CFNumberGetValue(intValue,kCFNumberShortType,&i);
-                //                [leftStickDeadzone setIntValue:i];
-                //                [leftStick setDeadzone:i];
-            } else NSLog(@"No value for DeadzoneLeft");
-            if(CFDictionaryGetValueIfPresent(dict,CFSTR("InvertRightX"),(void*)&boolValue)) {
-                //                [rightStickInvertX setState:CFBooleanGetValue(boolValue)?NSOnState:NSOffState];
-            } else NSLog(@"No value for InvertRightX");
-            if(CFDictionaryGetValueIfPresent(dict,CFSTR("InvertRightY"),(void*)&boolValue)) {
-                //                [rightStickInvertY setState:CFBooleanGetValue(boolValue)?NSOnState:NSOffState];
-            } else NSLog(@"No value for InvertRightY");
-            if(CFDictionaryGetValueIfPresent(dict,CFSTR("RelativeRight"),(void*)&boolValue)) {
-                //                BOOL enable=CFBooleanGetValue(boolValue);
-                //                [rightLinked setState:enable?NSOnState:NSOffState];
-                //                [rightStick setLinked:enable];
-            } else NSLog(@"No value for RelativeRight");
-            if(CFDictionaryGetValueIfPresent(dict,CFSTR("DeadzoneRight"),(void*)&intValue)) {
-                UInt16 i;
-                
-                CFNumberGetValue(intValue,kCFNumberShortType,&i);
-                //                [rightStickDeadzone setIntValue:i];
-                //                [rightStick setDeadzone:i];
-            } else NSLog(@"No value for DeadzoneRight");
-            CFRelease(dict);
-        } else NSLog(@"No settings found");
-    }
     [self setMotorOverride:TRUE];
     [self runMotorsLarge:0 Small:0];
     largeMotor=0;
@@ -516,4 +470,19 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
     // Done
     [super dealloc];
 }
+
+-(int)leftStickX {
+    return invertX ? -leftStickX : leftStickX;
+}
+-(int)leftStickY {
+    return invertY ? -leftStickY : leftStickY;
+    
+}
+-(int)rightStickX {
+    return invertX ? -rightStickX : rightStickX;
+}
+-(int)rightStickY {
+    return invertY ? -rightStickY : rightStickY;    
+}
+
 @end
