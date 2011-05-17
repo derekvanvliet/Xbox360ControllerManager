@@ -55,4 +55,6 @@
 
 -(void)buttonStartPressed;
 -(void)buttonStartReleased;
+
+-(void)controllerDisconnected;
 @end

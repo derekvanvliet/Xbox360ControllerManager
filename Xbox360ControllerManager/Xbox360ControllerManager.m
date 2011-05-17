@@ -76,6 +76,12 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
 	return self;
 }
 
+-(void)dealloc {
+	[controllers release];
+	
+	[super dealloc];
+}
+
 -(Xbox360Controller*)controllerWithHid:(io_object_t)hid {
     for (Xbox360Controller* controller in controllers) {
         if (controller.myHid == hid) {
@@ -102,10 +108,9 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
     io_iterator_t iterator;
     io_object_t hidDevice;
     int count;
-    
-    // Scrub old items
-    [controllers removeAllObjects];
-    
+        
+	NSMutableArray *newControllers = [[NSMutableArray alloc] initWithCapacity:4];
+	
     // Add new items
     hidDictionary=IOServiceMatching(kIOHIDDeviceKey);
 	
@@ -117,20 +122,48 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
     while((hidDevice=IOIteratorNext(iterator))) {
         BOOL deviceWired = IOObjectConformsTo(hidDevice, "ControllerClass");
         BOOL deviceWireless = IOObjectConformsTo(hidDevice, "WirelessHIDDevice");
-				
+
+//		io_name_t className;
+//		IOReturn ioReturnValue = kIOReturnSuccess;		
+//		ioReturnValue = IOObjectGetClass(hidDevice, className);
+//		NSLog(@"%s",className);
+		
         if ((!deviceWired) && (!deviceWireless))
         {
             IOObjectRelease(hidDevice);
             continue;
         }
-        if ([self controllerWithHid:hidDevice]) {
-            continue;
-        }
-        [controllers addObject:[[Xbox360Controller alloc] initWithHidDevice:hidDevice Index:controllers.count]];
+		
+		Xbox360Controller *controller = [self controllerWithHid:hidDevice];
+		if (controller) {
+			if (controller.deviceIsAccessible) {
+				NSLog(@"Controller: %i",hidDevice);
+				[newControllers addObject:controller];
+			}
+		}
+		else {
+			controller = [[Xbox360Controller alloc] initWithHidDevice:hidDevice];
+			if (controller.deviceItem) {
+				NSLog(@"Controller: %i",hidDevice);
+				[newControllers addObject:controller];
+				[controller release];
+			}
+		}
+		
     }
     IOObjectRelease(iterator);
+    
+    for (Xbox360Controller *controller in controllers) {
+        if ([newControllers indexOfObject:controller] == NSNotFound) {
+            [controller disconnect];
+        }
+    }
+	[controllers release];
+	controllers = newControllers;
 	
 	[[NSNotificationCenter defaultCenter] postNotificationName:XBOX360CONTROLLERS_UPDATED object:nil];
+	NSLog(@"====");
+
 }
 
 -(void)setAllDelegates:(id<Xbox360ControllerDelegate>)d {

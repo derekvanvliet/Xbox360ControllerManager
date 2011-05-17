@@ -23,28 +23,37 @@
 #import "DeviceItem.h"
 
 @implementation DeviceItem
-
-+ allocateDeviceItemForDevice:(io_service_t)device
-{
-    DeviceItem *item;
-    IOReturn ret;
-    IOCFPlugInInterface **plugInInterface;
-    SInt32 score=0;
+-(id)initWithDevice:(io_service_t)device {
+    self = [super init];
     
-    item=[[[DeviceItem alloc] init] autorelease];
-    if(item==nil) goto fail;
-    ret=IOCreatePlugInInterfaceForService(device,kIOHIDDeviceUserClientTypeID,kIOCFPlugInInterfaceID,&plugInInterface,&score);
-    if(ret!=kIOReturnSuccess) goto fail;
-    ret=(*plugInInterface)->QueryInterface(plugInInterface,CFUUIDGetUUIDBytes(kIOHIDDeviceInterfaceID122),(LPVOID)&item->interface);
-    (*plugInInterface)->Release(plugInInterface);
-    if(ret!=kIOReturnSuccess) goto fail;
-    item->forceFeedback=0;
-    FFCreateDevice(device,&item->forceFeedback);
-    item->deviceHandle=device;
-    return item;
-fail:
-    IOObjectRelease(device);
-    return NULL;
+    if (self) {
+        IOReturn ret;
+        IOCFPlugInInterface **plugInInterface;
+        SInt32 score=0;
+        
+        ret=IOCreatePlugInInterfaceForService(device,kIOHIDDeviceUserClientTypeID,kIOCFPlugInInterfaceID,&plugInInterface,&score);
+        if(ret!=kIOReturnSuccess) {
+            IOObjectRelease(device);
+            [self release];
+            return nil;
+        }
+        else {
+            ret=(*plugInInterface)->QueryInterface(plugInInterface,CFUUIDGetUUIDBytes(kIOHIDDeviceInterfaceID122),(LPVOID)&interface);
+            (*plugInInterface)->Release(plugInInterface);
+            if(ret!=kIOReturnSuccess) {
+                IOObjectRelease(device);                
+                [self release];
+                return nil;
+            }
+            else {
+                forceFeedback=0;
+                FFCreateDevice(device,&forceFeedback);
+                deviceHandle=device;                
+            }
+        }
+    }
+    
+    return self;
 }
 
 - (void)dealloc

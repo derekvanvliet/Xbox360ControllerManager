@@ -33,8 +33,7 @@
     io_service_t deviceHandle;
 }
 
-+ allocateDeviceItemForDevice:(io_service_t)device;
-
+-(id)initWithDevice:(io_service_t)device;
 - (IOHIDDeviceInterface122**)hidDevice;
 - (FFDeviceObjectReference)ffDevice;
 - (io_service_t)rawDevice;

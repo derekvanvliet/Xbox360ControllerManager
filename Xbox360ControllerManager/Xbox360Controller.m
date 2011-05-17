@@ -9,7 +9,6 @@
 #import "Xbox360Controller.h"
 #include <mach/mach.h>
 #include <IOKit/usb/IOUSBLib.h>
-#import "DeviceItem.h"
 #import "ControlPrefs.h"
 
 #define NO_ITEMS            @"No devices found"
@@ -22,7 +21,6 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 
 @implementation Xbox360Controller
 @synthesize myHid;
-
 @synthesize leftStickX;
 @synthesize leftStickY;
 @synthesize rightStickX;
@@ -36,15 +34,14 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 @synthesize up,down,left,right;
 @synthesize delegate;
 @synthesize invertX,invertY;
-
+@synthesize deviceItem;
 // Start up
--(id)initWithHidDevice:(io_object_t)hid Index:(int)index
+-(id)initWithHidDevice:(io_object_t)hid
 {
 	self = [super init];
 	
 	if (self) {
         myHid = hid;
-        controllerIndex = index;
 		
 		// Get master port, for accessing I/O Kit
 		IOMasterPort(MACH_PORT_NULL,&masterPort);
@@ -53,12 +50,10 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 		notifySource=IONotificationPortGetRunLoopSource(notifyPort);
 		CFRunLoopAddSource(CFRunLoopGetCurrent(),notifySource,kCFRunLoopCommonModes);
 		// Prepare other fields
-		deviceArray=[[NSMutableArray arrayWithCapacity:1] retain];
 		device=NULL;
 		hidQueue=NULL;
 		
-        DeviceItem *item=[DeviceItem allocateDeviceItemForDevice:myHid];
-        [deviceArray addObject:item];
+        deviceItem = [[DeviceItem alloc] initWithDevice:myHid];
         [self startDevice];
 	}
 	
@@ -263,18 +258,14 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
     CFRunLoopSourceRef eventSource;
     IOReturn ret;
     
-    //    [self resetDisplay];
 	i = 0;
-    if(([deviceArray count]==0)||(i==-1)) {
-        NSLog(@"No devices found? :( device count==%lu, i==%i",[deviceArray count],i);
+	if (!deviceItem) {
         return;
-    }
-    {
-        DeviceItem *item=[deviceArray objectAtIndex:i];
-        
-        device=[item hidDevice];
-        ffDevice=[item ffDevice];
-        registryEntry=[item rawDevice];
+	}
+    {        
+        device=[deviceItem hidDevice];
+        ffDevice=[deviceItem ffDevice];
+        registryEntry=[deviceItem rawDevice];
     }
     if((*device)->copyMatchingElements(device,NULL,&elements)!=kIOReturnSuccess) {
         NSLog(@"Can't get elements list");
@@ -406,7 +397,6 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
     if(registryEntry==0) return;
     [self runMotorsLarge:0 Small:0];
     [self setMotorOverride:FALSE];
-	//    [self updateLED:0x00];
     if(hidQueue!=NULL) {
         CFRunLoopSourceRef eventSource;
         
@@ -424,17 +414,10 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
     registryEntry=0;
 }
 
-// Clear out the device lists
-- (void)deleteDeviceList
-{
-    [deviceArray removeAllObjects];
-}
-
 // Shut down
 - (void)dealloc
-{
+{	
     int i;
-    DeviceItem *item;
     FFEFFESCAPE escape;
     unsigned char c;
 	
@@ -448,11 +431,7 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
     IONotificationPortDestroy(notifyPort);
     // Release device and info
     [self stopDevice];
-    for (i = 0; i < [deviceArray count]; i++)
-    {
-        item = [deviceArray objectAtIndex:i];
-        if ([item ffDevice] == 0)
-            continue;
+	if ([deviceItem ffDevice] != 0) {
         c = 0x06 + (i % 0x04);
         escape.dwSize = sizeof(escape);
         escape.dwCommand = 0x02;
@@ -460,13 +439,13 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
         escape.lpvInBuffer = &c;
         escape.cbOutBuffer = 0;
         escape.lpvOutBuffer = NULL;
-        FFDeviceEscape([item ffDevice], &escape);
-    }
-    [self deleteDeviceList];
-    [deviceArray release];
+        FFDeviceEscape([deviceItem ffDevice], &escape);
+	}
+	[deviceItem release];
     // Close master port
     mach_port_deallocate(mach_task_self(),masterPort);
-    [delegate release];
+    if (delegate)
+        [delegate release];
     // Done
     [super dealloc];
 }
@@ -484,5 +463,24 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 -(int)rightStickY {
     return invertY ? -rightStickY : rightStickY;    
 }
+-(BOOL)deviceIsAccessible {
+	DeviceItem *item = [[DeviceItem alloc] initWithDevice:myHid];
+	if (item) {
+		[item release];
+		return YES;
+	}
+	
+	return NO;
+}
 
+-(void)disconnect {
+    if (delegate) {
+		if ([delegate respondsToSelector:@selector(controllerDisconnected)]) {
+			[delegate performSelector:@selector(controllerDisconnected)];
+		}            
+	}
+    
+    [delegate release];
+    delegate = nil;
+}
 @end

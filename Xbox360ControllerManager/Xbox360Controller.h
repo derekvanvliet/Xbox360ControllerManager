@@ -7,6 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "DeviceItem.h"
 #import <IOKit/IOKitLib.h>
 #import <IOKit/IOCFPlugIn.h>
 #import <IOKit/hid/IOHIDLib.h>
@@ -17,7 +18,7 @@
 @interface Xbox360Controller : NSObject {
     // Internal info
     mach_port_t masterPort;
-    NSMutableArray *deviceArray;
+	DeviceItem *deviceItem;
     IOHIDElementCookie axis[6],buttons[15];
     
     IOHIDDeviceInterface122 **device;
@@ -33,7 +34,6 @@
     io_iterator_t onIteratorWireless, offIteratorWireless;	
     
     io_object_t myHid;
-    int controllerIndex;
 	
     int leftStickX;
     int leftStickY;
@@ -68,10 +68,13 @@
 @property (readonly) BOOL up,down,left,right;
 @property (readwrite,retain) id<Xbox360ControllerDelegate> delegate;
 @property (readwrite,assign) BOOL invertX,invertY;
+@property (readonly) DeviceItem* deviceItem;
+@property (readonly) BOOL deviceIsAccessible;
 
--(id)initWithHidDevice:(io_object_t)hid Index:(int)index;
+-(id)initWithHidDevice:(io_object_t)hid;
 -(void)eventQueueFired:(void*)sender withResult:(IOReturn)result;
 -(void)buttonDelegateMethod:(SEL)downSel Released:(SEL)upSel State:(BOOL)state;
 -(void)startDevice;
 -(void)runMotorsLarge:(unsigned char)large Small:(unsigned char)small;
+-(void)disconnect;
 @end

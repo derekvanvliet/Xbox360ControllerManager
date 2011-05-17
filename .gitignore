@@ -1,1 +1,6 @@
+*atlas*.*
+*.pbxuser
+*.mode1v3
+build
 .DS_Store
+xcuserdata/
