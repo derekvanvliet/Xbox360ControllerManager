@@ -10,6 +10,10 @@ The API consists of:
 * Xbox360Controller: a class that can be used to poll for button and stick states from those instances and
 * Xbox360ControllerDelegate: a protocol that delegates can use to receive button inputs
 
+The following NSNotifications are posted:
+
+* XBOX360CONTROLLERS_UPDATED: posted whenever a controller connects or disconnects
+
 ## Usage
 
 To use Xbox 360 controller input in your Mac application, do the following:
