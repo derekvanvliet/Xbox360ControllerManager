@@ -15,7 +15,7 @@ The API consists of:
 To use Xbox 360 controller input in your Mac application, do the following:
 
 1. Install the driver by running 360ControllerInstall.dmg.
-1. Copy the Xbox360ControllerManager class to your project.
-2. Include the following frameworks in your project:
+2. Drag and drop the Xbox360ControllerManager folder into your project.
+3. Include the following frameworks in your project:
 	* IOKit.framework
 	* ForceFeedback.framework
