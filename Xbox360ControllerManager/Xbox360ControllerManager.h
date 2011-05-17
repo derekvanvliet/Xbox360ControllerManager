@@ -9,7 +9,14 @@
 #import <Foundation/Foundation.h>
 #import "Xbox360Controller.h"
 
+#define XBOX360CONTROLLERS_UPDATED @"Xbox360ControllerManager_ControllersUpdated"
+
 @interface Xbox360ControllerManager : NSObject {
+    mach_port_t masterPort;
+    IONotificationPortRef notifyPort;
+    CFRunLoopSourceRef notifySource;
+    io_iterator_t onIteratorWired, offIteratorWired;
+    io_iterator_t onIteratorWireless, offIteratorWireless;
     NSMutableArray *controllers;
 }
 

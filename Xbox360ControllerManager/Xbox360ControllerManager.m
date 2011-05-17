@@ -7,6 +7,25 @@
 //
 
 #import "Xbox360ControllerManager.h"
+#include <mach/mach.h>
+#include <IOKit/usb/IOUSBLib.h>
+#import "DeviceItem.h"
+#import "ControlPrefs.h"
+
+// Handle callback for when our device is connected or disconnected. Both events are
+// actually handled identically.
+static void callbackHandleDevice(void *param,io_iterator_t iterator)
+{
+    io_service_t object=0;
+    BOOL update;
+    
+    update=FALSE;
+    while((object=IOIteratorNext(iterator))!=0) {
+        IOObjectRelease(object);
+        update=TRUE;
+    }
+    if(update) [(Xbox360ControllerManager*)param updateControllers];
+}
 
 @implementation Xbox360ControllerManager
 
@@ -29,7 +48,29 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
 	
 	if (self) {
         controllers = [[NSMutableArray alloc] initWithCapacity:4];
-        [self updateControllers];
+        
+        io_object_t object;
+		
+        // Get master port, for accessing I/O Kit
+        IOMasterPort(MACH_PORT_NULL,&masterPort);
+        // Set up notification of USB device addition/removal
+        notifyPort=IONotificationPortCreate(masterPort);
+        notifySource=IONotificationPortGetRunLoopSource(notifyPort);
+        CFRunLoopAddSource(CFRunLoopGetCurrent(),notifySource,kCFRunLoopCommonModes);
+		
+        // Activate callbacks
+        // Wired
+        IOServiceAddMatchingNotification(notifyPort, kIOFirstMatchNotification, IOServiceMatching(kIOUSBDeviceClassName), callbackHandleDevice, self, &onIteratorWired);
+        callbackHandleDevice(self, onIteratorWired);
+        IOServiceAddMatchingNotification(notifyPort, kIOTerminatedNotification, IOServiceMatching(kIOUSBDeviceClassName), callbackHandleDevice, self, &offIteratorWired);
+        while((object = IOIteratorNext(offIteratorWired)) != 0)
+            IOObjectRelease(object);
+        // Wireless
+        IOServiceAddMatchingNotification(notifyPort, kIOFirstMatchNotification, IOServiceMatching("WirelessHIDDevice"), callbackHandleDevice, self, &onIteratorWireless);
+        callbackHandleDevice(self, onIteratorWireless);
+        IOServiceAddMatchingNotification(notifyPort, kIOTerminatedNotification, IOServiceMatching("WirelessHIDDevice"), callbackHandleDevice, self, &offIteratorWireless);
+        while((object = IOIteratorNext(offIteratorWireless)) != 0)
+            IOObjectRelease(object);
 	}
 	
 	return self;
@@ -67,9 +108,7 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
     
     // Add new items
     hidDictionary=IOServiceMatching(kIOHIDDeviceKey);
-    mach_port_t masterPort;
-    IOMasterPort(MACH_PORT_NULL,&masterPort);
-
+	
     ioReturn=IOServiceGetMatchingServices(masterPort,hidDictionary,&iterator);
     if((ioReturn!=kIOReturnSuccess)||(iterator==0)) {
         return;
@@ -78,14 +117,7 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
     while((hidDevice=IOIteratorNext(iterator))) {
         BOOL deviceWired = IOObjectConformsTo(hidDevice, "ControllerClass");
         BOOL deviceWireless = IOObjectConformsTo(hidDevice, "WirelessHIDDevice");
-		
-		//
-		io_name_t               className;
-		IOReturn                ioReturnValue = kIOReturnSuccess;		
-		ioReturnValue = IOObjectGetClass(hidDevice, className);
-		NSLog(@"%s",className);
-		//
-		
+				
         if ((!deviceWired) && (!deviceWireless))
         {
             IOObjectRelease(hidDevice);
@@ -97,6 +129,8 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
         [controllers addObject:[[Xbox360Controller alloc] initWithHidDevice:hidDevice Index:controllers.count]];
     }
     IOObjectRelease(iterator);
+	
+	[[NSNotificationCenter defaultCenter] postNotificationName:XBOX360CONTROLLERS_UPDATED object:nil];
 }
 
 -(void)setAllDelegates:(id<Xbox360ControllerDelegate>)d {
