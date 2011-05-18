@@ -9,13 +9,10 @@
 #import "Xbox360ControllerManager.h"
 #include <mach/mach.h>
 #include <IOKit/usb/IOUSBLib.h>
-#import "DeviceItem.h"
-#import "ControlPrefs.h"
 
 // Handle callback for when our device is connected or disconnected. Both events are
 // actually handled identically.
-static void callbackHandleDevice(void *param,io_iterator_t iterator)
-{
+static void callbackHandleDevice(void *param,io_iterator_t iterator) {
     io_service_t object=0;
     BOOL update;
     
@@ -101,8 +98,7 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
 }
 
 // Update the device list from the I/O Kit
--(void)updateControllers
-{
+-(void)updateControllers {
     CFMutableDictionaryRef hidDictionary;
     IOReturn ioReturn;
     io_iterator_t iterator;
@@ -142,7 +138,7 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
 		}
 		else {
 			controller = [[Xbox360Controller alloc] initWithHidDevice:hidDevice];
-			if (controller.deviceItem) {
+			if (controller) {
 				[newControllers addObject:controller];
 				[controller release];
 			}
@@ -158,7 +154,6 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
     }
 	[controllers release];
 	controllers = newControllers;
-	
 	[[NSNotificationCenter defaultCenter] postNotificationName:XBOX360CONTROLLERS_UPDATED object:nil];
 }
 

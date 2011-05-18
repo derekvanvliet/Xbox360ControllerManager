@@ -9,13 +9,8 @@
 #import "Xbox360Controller.h"
 #include <mach/mach.h>
 #include <IOKit/usb/IOUSBLib.h>
-#import "ControlPrefs.h"
 
-#define NO_ITEMS            @"No devices found"
-
-// Passes a C callback back to the Objective C class
-static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,void *sender)
-{
+static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,void *sender) {
     if(target!=NULL) [((Xbox360Controller*)target) eventQueueFired:sender withResult:result];
 }
 
@@ -34,10 +29,8 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 @synthesize up,down,left,right;
 @synthesize delegate;
 @synthesize invertX,invertY;
-@synthesize deviceItem;
-// Start up
--(id)initWithHidDevice:(io_object_t)hid
-{
+
+-(id)initWithHidDevice:(io_object_t)hid {
 	self = [super init];
 	
 	if (self) {
@@ -53,17 +46,78 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 		device=NULL;
 		hidQueue=NULL;
 		
-        deviceItem = [[DeviceItem alloc] initWithDevice:myHid];
+        if (self) {
+            IOReturn ret;
+            IOCFPlugInInterface **plugInInterface;
+            SInt32 score=0;
+            
+            ret=IOCreatePlugInInterfaceForService(myHid,kIOHIDDeviceUserClientTypeID,kIOCFPlugInInterfaceID,&plugInInterface,&score);
+            if(ret!=kIOReturnSuccess) {
+                IOObjectRelease(myHid);
+                [self release];
+                return nil;
+            }
+            else {
+                ret=(*plugInInterface)->QueryInterface(plugInInterface,CFUUIDGetUUIDBytes(kIOHIDDeviceInterfaceID122),(LPVOID)&device);
+                (*plugInInterface)->Release(plugInInterface);
+                if(ret!=kIOReturnSuccess) {
+                    IOObjectRelease(myHid);                
+                    [self release];
+                    return nil;
+                }
+                else {
+                    ffDevice=0;
+                    FFCreateDevice(myHid,&ffDevice);
+                    registryEntry=myHid;                
+                }
+            }
+        }
+
         [self startDevice];
 	}
 	
 	return self;
 }
 
+-(void)dealloc {	
+    int i;
+    FFEFFESCAPE escape;
+    unsigned char c;
+	
+    // Remove notification source
+    IOObjectRelease(onIteratorWired);
+    IOObjectRelease(onIteratorWireless);
+    IOObjectRelease(offIteratorWired);
+    IOObjectRelease(offIteratorWireless);
+    CFRunLoopRemoveSource(CFRunLoopGetCurrent(),notifySource,kCFRunLoopCommonModes);
+    CFRunLoopSourceInvalidate(notifySource);
+    IONotificationPortDestroy(notifyPort);
+    // Release device and info
+    [self stopDevice];
+	if (ffDevice != 0) {
+        c = 0x06 + (i % 0x04);
+        escape.dwSize = sizeof(escape);
+        escape.dwCommand = 0x02;
+        escape.cbInBuffer = sizeof(c);
+        escape.lpvInBuffer = &c;
+        escape.cbOutBuffer = 0;
+        escape.lpvOutBuffer = NULL;
+        FFDeviceEscape(ffDevice, &escape);
+	}
+    if(registryEntry!=0) IOObjectRelease(registryEntry);
+    if(device!=NULL) (*device)->Release(device);
+    if(ffDevice!=0) FFReleaseDevice(ffDevice);
+    // Close master port
+    mach_port_deallocate(mach_task_self(),masterPort);
+    if (delegate)
+        [delegate release];
+    // Done
+    [super dealloc];
+}
+
 // If the direct rumble control is enabled, this will set the motors
 // to the desired speed.
-- (void)runMotorsLarge:(unsigned char)large Small:(unsigned char)small
-{
+-(void)runMotorsLarge:(unsigned char)large Small:(unsigned char)small {
     FFEFFESCAPE escape;
     char c[2];
     
@@ -80,8 +134,7 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 }
 
 // Enables and disables the rumble motor "override"
-- (void)setMotorOverride:(BOOL)enable
-{
+-(void)setMotorOverride:(BOOL)enable {
     FFEFFESCAPE escape;
     char c;
     
@@ -99,9 +152,7 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
     FFDeviceEscape(ffDevice,&escape);
 }
 
-// Update axis GUI component
-- (void)axisChanged:(int)index newValue:(int)value
-{
+-(void)axisChanged:(int)index newValue:(int)value {
     switch(index) {
         case 0:
             leftStickX = value;
@@ -141,9 +192,7 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
     }
 }
 
-// Update button GUI component
-- (void)buttonChanged:(int)index newValue:(int)value
-{
+-(void)buttonChanged:(int)index newValue:(int)value {
     BOOL state;
     
     state=value!=0;
@@ -214,8 +263,7 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 }
 
 // Handle message from I/O Kit indicating something happened on the device
-- (void)eventQueueFired:(void*)sender withResult:(IOReturn)result
-{
+-(void)eventQueueFired:(void*)sender withResult:(IOReturn)result {
     AbsoluteTime zeroTime={0,0};
     IOHIDEventStruct event;
     BOOL found;
@@ -246,8 +294,7 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 }
 
 // Start using a HID device
-- (void)startDevice
-{
+-(void)startDevice {
     int i,j;
     CFArrayRef elements;
     CFDictionaryRef element;
@@ -259,14 +306,6 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
     IOReturn ret;
     
 	i = 0;
-	if (!deviceItem) {
-        return;
-	}
-    {        
-        device=[deviceItem hidDevice];
-        ffDevice=[deviceItem ffDevice];
-        registryEntry=[deviceItem rawDevice];
-    }
     if((*device)->copyMatchingElements(device,NULL,&elements)!=kIOReturnSuccess) {
         NSLog(@"Can't get elements list");
         // Make note of failure?
@@ -392,8 +431,7 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 }
 
 // Stop using the HID device
-- (void)stopDevice
-{
+-(void)stopDevice {
     if(registryEntry==0) return;
     [self runMotorsLarge:0 Small:0];
     [self setMotorOverride:FALSE];
@@ -414,42 +452,6 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
     registryEntry=0;
 }
 
-// Shut down
-- (void)dealloc
-{	
-    int i;
-    FFEFFESCAPE escape;
-    unsigned char c;
-	
-    // Remove notification source
-    IOObjectRelease(onIteratorWired);
-    IOObjectRelease(onIteratorWireless);
-    IOObjectRelease(offIteratorWired);
-    IOObjectRelease(offIteratorWireless);
-    CFRunLoopRemoveSource(CFRunLoopGetCurrent(),notifySource,kCFRunLoopCommonModes);
-    CFRunLoopSourceInvalidate(notifySource);
-    IONotificationPortDestroy(notifyPort);
-    // Release device and info
-    [self stopDevice];
-	if ([deviceItem ffDevice] != 0) {
-        c = 0x06 + (i % 0x04);
-        escape.dwSize = sizeof(escape);
-        escape.dwCommand = 0x02;
-        escape.cbInBuffer = sizeof(c);
-        escape.lpvInBuffer = &c;
-        escape.cbOutBuffer = 0;
-        escape.lpvOutBuffer = NULL;
-        FFDeviceEscape([deviceItem ffDevice], &escape);
-	}
-	[deviceItem release];
-    // Close master port
-    mach_port_deallocate(mach_task_self(),masterPort);
-    if (delegate)
-        [delegate release];
-    // Done
-    [super dealloc];
-}
-
 -(int)leftStickX {
     return invertX ? -leftStickX : leftStickX;
 }
@@ -464,13 +466,17 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
     return invertY ? -rightStickY : rightStickY;    
 }
 -(BOOL)deviceIsAccessible {
-	DeviceItem *item = [[DeviceItem alloc] initWithDevice:myHid];
-	if (item) {
-		[item release];
-		return YES;
-	}
+    IOReturn ret;
+    IOCFPlugInInterface **plugInInterface;
+    SInt32 score=0;
+    
+    ret=IOCreatePlugInInterfaceForService(myHid,kIOHIDDeviceUserClientTypeID,kIOCFPlugInInterfaceID,&plugInInterface,&score);
+    if(ret!=kIOReturnSuccess) {
+        IOObjectRelease(myHid);
+        return NO;
+    }
 	
-	return NO;
+	return YES;
 }
 
 -(void)disconnect {
