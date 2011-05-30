@@ -7,11 +7,16 @@
 //
 
 #import "Xbox360ControllerManager.h"
+#ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
 #include <mach/mach.h>
 #include <IOKit/usb/IOUSBLib.h>
+#endif
 
 // Handle callback for when our device is connected or disconnected. Both events are
 // actually handled identically.
+#ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
 static void callbackHandleDevice(void *param,io_iterator_t iterator) {
     io_service_t object=0;
     BOOL update;
@@ -23,6 +28,7 @@ static void callbackHandleDevice(void *param,io_iterator_t iterator) {
     }
     if(update) [(Xbox360ControllerManager*)param updateControllers];
 }
+#endif
 
 @implementation Xbox360ControllerManager
 
@@ -46,6 +52,8 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
 	if (self) {
         controllers = [[NSMutableArray alloc] initWithCapacity:4];
         
+#ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
         io_object_t object;
 		
         // Get master port, for accessing I/O Kit
@@ -68,6 +76,7 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
         IOServiceAddMatchingNotification(notifyPort, kIOTerminatedNotification, IOServiceMatching("WirelessHIDDevice"), callbackHandleDevice, self, &offIteratorWireless);
         while((object = IOIteratorNext(offIteratorWireless)) != 0)
             IOObjectRelease(object);
+#endif
 	}
 	
 	return self;
@@ -79,6 +88,8 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
 	[super dealloc];
 }
 
+#ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
 -(Xbox360Controller*)controllerWithHid:(io_object_t)hid {
     for (Xbox360Controller* controller in controllers) {
         if (controller.myHid == hid) {
@@ -88,6 +99,7 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
     
     return nil;
 }
+#endif
 
 -(int)controllerCount {
     return controllers.count;
@@ -99,6 +111,8 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
 
 // Update the device list from the I/O Kit
 -(void)updateControllers {
+#ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
     CFMutableDictionaryRef hidDictionary;
     IOReturn ioReturn;
     io_iterator_t iterator;
@@ -155,6 +169,7 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
 	[controllers release];
 	controllers = newControllers;
 	[[NSNotificationCenter defaultCenter] postNotificationName:XBOX360CONTROLLERS_UPDATED object:nil];
+#endif
 }
 
 -(void)setAllDelegates:(id<Xbox360ControllerDelegate>)d {

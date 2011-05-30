@@ -10,12 +10,18 @@
 #include <mach/mach.h>
 #include <IOKit/usb/IOUSBLib.h>
 
+#ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
 static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,void *sender) {
     if(target!=NULL) [((Xbox360Controller*)target) eventQueueFired:sender withResult:result];
 }
+#endif
 
 @implementation Xbox360Controller
+#ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
 @synthesize myHid;
+#endif
 @synthesize leftStickX;
 @synthesize leftStickY;
 @synthesize rightStickX;
@@ -32,7 +38,9 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 
 -(id)initWithHidDevice:(io_object_t)hid {
 	self = [super init];
-	
+
+#ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
 	if (self) {
         myHid = hid;
 		
@@ -72,14 +80,17 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
                 }
             }
         }
-
+		
         [self startDevice];
 	}
+#endif
 	
 	return self;
 }
 
 -(void)dealloc {	
+#ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
     int i;
     FFEFFESCAPE escape;
     unsigned char c;
@@ -109,8 +120,11 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
     if(ffDevice!=0) FFReleaseDevice(ffDevice);
     // Close master port
     mach_port_deallocate(mach_task_self(),masterPort);
+#endif
+	
     if (delegate)
         [delegate release];
+	
     // Done
     [super dealloc];
 }
@@ -118,6 +132,8 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 // If the direct rumble control is enabled, this will set the motors
 // to the desired speed.
 -(void)runMotorsLarge:(unsigned char)large Small:(unsigned char)small {
+#ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
     FFEFFESCAPE escape;
     char c[2];
     
@@ -131,10 +147,13 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
     escape.cbOutBuffer=0;
     escape.lpvOutBuffer=NULL;
     FFDeviceEscape(ffDevice,&escape);
+#endif
 }
 
 // Enables and disables the rumble motor "override"
 -(void)setMotorOverride:(BOOL)enable {
+#ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
     FFEFFESCAPE escape;
     char c;
     
@@ -150,6 +169,7 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
     escape.cbOutBuffer=0;
     escape.lpvOutBuffer=NULL;
     FFDeviceEscape(ffDevice,&escape);
+#endif
 }
 
 -(void)axisChanged:(int)index newValue:(int)value {
@@ -264,6 +284,8 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 
 // Handle message from I/O Kit indicating something happened on the device
 -(void)eventQueueFired:(void*)sender withResult:(IOReturn)result {
+#ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
     AbsoluteTime zeroTime={0,0};
     IOHIDEventStruct event;
     BOOL found;
@@ -291,10 +313,13 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
         if(found) continue;
         // Cookie wasn't for us?
     }
+#endif
 }
 
 // Start using a HID device
 -(void)startDevice {
+#ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
     int i,j;
     CFArrayRef elements;
     CFDictionaryRef element;
@@ -428,10 +453,13 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
             }
         }
     }
+#endif
 }
 
 // Stop using the HID device
 -(void)stopDevice {
+#ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
     if(registryEntry==0) return;
     [self runMotorsLarge:0 Small:0];
     [self setMotorOverride:FALSE];
@@ -450,6 +478,7 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
         device=NULL;
     }
     registryEntry=0;
+#endif
 }
 
 -(int)leftStickX {
@@ -466,6 +495,9 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
     return invertY ? -rightStickY : rightStickY;    
 }
 -(BOOL)deviceIsAccessible {
+#ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
+	return NO;
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
     IOReturn ret;
     IOCFPlugInInterface **plugInInterface;
     SInt32 score=0;
@@ -477,6 +509,7 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
     }
 	
 	return YES;
+#endif
 }
 
 -(void)disconnect {
