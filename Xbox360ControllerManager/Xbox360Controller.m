@@ -7,11 +7,12 @@
 //
 
 #import "Xbox360Controller.h"
-#include <mach/mach.h>
-#include <IOKit/usb/IOUSBLib.h>
 
 #ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
 #elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
+#include <mach/mach.h>
+#include <IOKit/usb/IOUSBLib.h>
+
 static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,void *sender) {
     if(target!=NULL) [((Xbox360Controller*)target) eventQueueFired:sender withResult:result];
 }
@@ -36,11 +37,11 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 @synthesize delegate;
 @synthesize invertX,invertY;
 
+#ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
+#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
 -(id)initWithHidDevice:(io_object_t)hid {
 	self = [super init];
 
-#ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
-#elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
 	if (self) {
         myHid = hid;
 		
@@ -83,10 +84,10 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 		
         [self startDevice];
 	}
-#endif
 	
 	return self;
 }
+#endif
 
 -(void)dealloc {	
 #ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
@@ -283,9 +284,9 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 }
 
 // Handle message from I/O Kit indicating something happened on the device
--(void)eventQueueFired:(void*)sender withResult:(IOReturn)result {
 #ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
 #elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
+-(void)eventQueueFired:(void*)sender withResult:(IOReturn)result {
     AbsoluteTime zeroTime={0,0};
     IOHIDEventStruct event;
     BOOL found;
@@ -313,8 +314,8 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
         if(found) continue;
         // Cookie wasn't for us?
     }
-#endif
 }
+#endif
 
 // Start using a HID device
 -(void)startDevice {
