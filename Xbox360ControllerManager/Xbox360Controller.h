@@ -38,18 +38,20 @@
     
     CFRunLoopSourceRef notifySource;
 	
-    int leftStickX;
-    int leftStickY;
-    int rightStickX;
-    int rightStickY;
-    int leftTrigger;
-    int rightTrigger;
+    CGFloat leftStickX;
+    CGFloat leftStickY;
+    CGFloat rightStickX;
+    CGFloat rightStickY;
+    CGFloat leftTrigger;
+    CGFloat rightTrigger;
     
     BOOL a,b,x,y;
     BOOL leftShoulder,rightShoulder;
     BOOL leftStick,rightStick;
     BOOL start,back,home;
     BOOL up,down,left,right;
+	BOOL leftTriggerPressed;
+	BOOL rightTriggerPressed;
     
     id<Xbox360ControllerDelegate> delegate;
     
@@ -57,12 +59,12 @@
     BOOL invertX;    
 }
 
-@property (readonly) int leftStickX; // -32768 to 32768
-@property (readonly) int leftStickY;
-@property (readonly) int rightStickX;
-@property (readonly) int rightStickY;
-@property (readonly) int leftTrigger; // 0 to 255
-@property (readonly) int rightTrigger;
+@property (readonly) CGFloat leftStickX; // -1.0 to 1.0
+@property (readonly) CGFloat leftStickY;
+@property (readonly) CGFloat rightStickX;
+@property (readonly) CGFloat rightStickY;
+@property (readonly) CGFloat leftTrigger; // 0 to 1.0
+@property (readonly) CGFloat rightTrigger;
 @property (readonly) BOOL a,b,x,y;
 @property (readonly) BOOL leftShoulder,rightShoulder;
 @property (readonly) BOOL leftStick,rightStick;

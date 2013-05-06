@@ -92,7 +92,7 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 -(void)dealloc {	
 #ifdef __IPHONE_OS_VERSION_MAX_ALLOWED
 #elif defined(__MAC_OS_X_VERSION_MAX_ALLOWED)
-    int i;
+    int i = 0;
     FFEFFESCAPE escape;
     unsigned char c;
 	
@@ -176,22 +176,38 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 -(void)axisChanged:(int)index newValue:(int)value {
     switch(index) {
         case 0:
-            leftStickX = value;
+            leftStickX = value / 32768.0f;
             break;
         case 1:
-            leftStickY = value;
+            leftStickY = value / 32768.0f;
             break;
         case 2:
-            rightStickX = value;
+            rightStickX = value / 32768.0f;
             break;
         case 3:
-            rightStickY = value;
+            rightStickY = value / 32768.0f;
             break;
         case 4:
-            leftTrigger = value;
+            leftTrigger = value / 255.0f;
+			if (leftTrigger > 0.5 && !leftTriggerPressed) {
+				leftTriggerPressed = YES;
+				[self buttonDelegateMethod:@selector(triggerLeftPressed) Released:@selector(triggerLeftReleased) State:leftTriggerPressed];
+			}
+			else if (leftTrigger < 0.5 && leftTriggerPressed) {
+				leftTriggerPressed = NO;
+				[self buttonDelegateMethod:@selector(triggerLeftPressed) Released:@selector(triggerLeftReleased) State:leftTriggerPressed];
+			}
             break;
         case 5:
-            rightTrigger = value;
+            rightTrigger = value / 255.0f;
+			if (rightTrigger > 0.5 && !rightTriggerPressed) {
+				rightTriggerPressed = YES;
+				[self buttonDelegateMethod:@selector(triggerRightPressed) Released:@selector(triggerRightReleased) State:rightTriggerPressed];
+			}
+			else if (rightTrigger < 0.5 && rightTriggerPressed) {
+				rightTriggerPressed = NO;
+				[self buttonDelegateMethod:@selector(triggerRightPressed) Released:@selector(triggerRightReleased) State:rightTriggerPressed];
+			}
             break;
         default:
             break;
@@ -331,7 +347,6 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
     CFRunLoopSourceRef eventSource;
     IOReturn ret;
     
-	i = 0;
     if((*device)->copyMatchingElements(device,NULL,&elements)!=kIOReturnSuccess) {
         NSLog(@"Can't get elements list");
         // Make note of failure?
@@ -482,17 +497,17 @@ static void Xbox360ControllerCallback(void *target,IOReturn result,void *refCon,
 #endif
 }
 
--(int)leftStickX {
+-(CGFloat)leftStickX {
     return invertX ? -leftStickX : leftStickX;
 }
--(int)leftStickY {
+-(CGFloat)leftStickY {
     return invertY ? -leftStickY : leftStickY;
     
 }
--(int)rightStickX {
+-(CGFloat)rightStickX {
     return invertX ? -rightStickX : rightStickX;
 }
--(int)rightStickY {
+-(CGFloat)rightStickY {
     return invertY ? -rightStickY : rightStickY;    
 }
 -(BOOL)deviceIsAccessible {

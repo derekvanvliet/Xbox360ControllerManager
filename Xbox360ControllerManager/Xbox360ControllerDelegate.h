@@ -44,6 +44,14 @@
 -(void)buttonRightShoulderPressed;
 -(void)buttonRightShoulderReleased;
 
+// Left trigger events
+-(void)triggerLeftPressed;
+-(void)triggerLeftReleased;
+
+// Right trigger events
+-(void)triggerRightPressed;
+-(void)triggerRightReleased;
+
 // Digipad up button events
 -(void)buttonUpPressed;
 -(void)buttonUpReleased;

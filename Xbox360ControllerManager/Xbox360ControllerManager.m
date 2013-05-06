@@ -102,7 +102,7 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
 #endif
 
 -(int)controllerCount {
-    return controllers.count;
+    return (int)controllers.count;
 }
 
 -(Xbox360Controller*)getController:(int)index {
@@ -117,7 +117,6 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
     IOReturn ioReturn;
     io_iterator_t iterator;
     io_object_t hidDevice;
-    int count;
         
 	NSMutableArray *newControllers = [[NSMutableArray alloc] initWithCapacity:4];
 	
@@ -126,9 +125,10 @@ static Xbox360ControllerManager *sharedXbox360ControllerManager = nil;
 	
     ioReturn=IOServiceGetMatchingServices(masterPort,hidDictionary,&iterator);
     if((ioReturn!=kIOReturnSuccess)||(iterator==0)) {
+		[newControllers release];
         return;
     }
-    count=0;
+
     while((hidDevice=IOIteratorNext(iterator))) {
         BOOL deviceWired = IOObjectConformsTo(hidDevice, "ControllerClass");
         BOOL deviceWireless = IOObjectConformsTo(hidDevice, "WirelessHIDDevice");
